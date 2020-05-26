@@ -216,6 +216,15 @@ public:
     , int product_id
     );
 
+  optional<LicenseKey>
+  get_key
+    ( basic_Error & e
+    , std::string token
+    , int product_id
+    , std::string key
+    , int fields_to_return = 0
+    );
+
   std::string
   last_message
     ( basic_Error & e
@@ -261,6 +270,16 @@ private:
     , std::string token
     , int product_id
     );
+
+  optional<LicenseKey>
+  get_key_
+    ( basic_Error & e
+    , std::string token
+    , int product_id
+    , std::string key
+    , int fields_to_return = 0
+    );
+
 
   std::string
   last_message_
@@ -566,6 +585,64 @@ basic_Cryptolens<Configuration>::create_trial_key_
   if (e) { return ""; }
 
   return response_parser.parse_create_trial_key_response(e, response);
+}
+
+template<typename Configuration>
+optional<LicenseKey>
+basic_Cryptolens<Configuration>::get_key
+  ( basic_Error & e
+  , std::string token
+  , int product_id
+  , std::string key
+  , int fields_to_return
+  )
+{
+  if (e) { return nullopt; }
+
+  optional<LicenseKey> license_key = get_key_(e, std::move(token), product_id, std::move(key), fields_to_return);
+
+  if (e) { e.set_call(api::main(), errors::Call::BASIC_CRYPTOLENS_GET_KEY); return nullopt; }
+
+  return license_key;
+}
+
+template<typename Configuration>
+optional<LicenseKey>
+basic_Cryptolens<Configuration>::get_key_
+  ( basic_Error & e
+  , std::string token
+  , int product_id
+  , std::string key
+  , int fields_to_return
+  )
+{
+  if (e) { return nullopt; }
+
+  auto request = request_handler.post_request(e, "app.cryptolens.io", "/api/key/GetKey");
+
+  std::ostringstream product_id_; product_id_ << product_id;
+  std::ostringstream fields_to_return_; fields_to_return_ << fields_to_return;
+
+  std::string response =
+    request.add_argument(e, "token"         , token.c_str())
+           .add_argument(e, "ProductId"     , product_id_.str().c_str())
+           .add_argument(e, "Key"           , key.c_str())
+           .add_argument(e, "Sign"          , "true")
+           .add_argument(e, "FieldsToReturn", fields_to_return_.str().c_str())
+           .add_argument(e, "SignMethod"    , "1")
+           .add_argument(e, "v"             , "1")
+           .make(e);
+
+  optional<RawLicenseKey> raw_license_key = handle_activate_raw(e, this->signature_verifier, response);
+  optional<LicenseKeyInformation> y = response_parser.make_license_key_information(e, raw_license_key);
+
+// TODO: Add environment for checking the response from GetKey
+//  typename internal::ActivateEnvironment env(*y, product_id, key, machine_code, fields_to_return, false);
+//  activate_validator.validate(e, env);
+
+  if (e) { return nullopt; }
+
+  return LicenseKey(std::move(*y), std::move(*raw_license_key));
 }
 
 template<typename Configuration>

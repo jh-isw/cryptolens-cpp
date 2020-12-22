@@ -29,12 +29,12 @@ else()
     add_definitions (-DUNICODE -D_UNICODE)
 
     # Windows specific source files
-    list (APPEND SRC "src/RequestHandler_WinHTTP.cpp" "src/SignatureVerifier_CryptoAPI.cpp")
+    list (APPEND SRC "src/RequestHandler_WinHTTP.cpp" "src/SignatureVerifier_CryptoAPI.cpp" "third_party/curl/isunreserved.cpp")
     list (APPEND LIBS "winhttp")
 
     set (CRYPTOLENS_BUILD_MACHINE_CODE_COM OFF CACHE BOOL "build with MachineCodeComputer_COM?")
     if (CRYPTOLENS_BUILD_MACHINE_CODE_COM)
-        list (APPEND SRC "src/MachineCodeComputer_COM.cpp" "third_party/curl/isunreserved.cpp")
+        list (APPEND SRC "src/MachineCodeComputer_COM.cpp")
         list (APPEND LIBS "Iphlpapi")
     endif()
 endif()
